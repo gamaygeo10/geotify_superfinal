@@ -21,11 +21,18 @@ export class ProfilePage implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadPlaylist();
     window.addEventListener('storage', this.syncPlaylist.bind(this));
+    window.addEventListener('userPlaylistUpdated', this.onUserPlaylistUpdated);
   }
 
   ngOnDestroy() {
     window.removeEventListener('storage', this.syncPlaylist.bind(this));
+    window.removeEventListener('userPlaylistUpdated', this.onUserPlaylistUpdated);
   }
+
+  // Event handler for playlist updates
+  onUserPlaylistUpdated = (event: any) => {
+    this.playlist = event.detail || [];
+  };
 
   loadPlaylist() {
     const saved = localStorage.getItem('userPlaylist');
@@ -36,6 +43,10 @@ export class ProfilePage implements OnInit, OnDestroy {
     if (event.key === 'userPlaylist') {
       this.loadPlaylist();
     }
+  }
+
+  navigateToAddSong() {
+    this.router.navigate(['/home'], { queryParams: { addMode: 'true' } });
   }
 
   playTrack(track: any, sourceList: any[] = [track]) {
@@ -54,7 +65,6 @@ export class ProfilePage implements OnInit, OnDestroy {
 
     this.router.navigate(['/now-playing']);
 
-    // Also update recently played songs in localStorage
     let recent = JSON.parse(localStorage.getItem('recentSongs') || '[]');
     recent = recent.filter((item: any) => {
       if (item.id !== undefined && track.id !== undefined) {
@@ -65,8 +75,6 @@ export class ProfilePage implements OnInit, OnDestroy {
     recent.unshift(track);
     if (recent.length > 3) recent.pop();
     localStorage.setItem('recentSongs', JSON.stringify(recent));
-
-    // Dispatch a custom event so other tabs/components (like HomePage) can update immediately
     window.dispatchEvent(new CustomEvent('recentSongsUpdated', { detail: recent }));
   }
 

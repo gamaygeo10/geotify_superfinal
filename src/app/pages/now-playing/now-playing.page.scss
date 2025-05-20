@@ -57,7 +57,7 @@ ion-header {
   left: 0;
   right: 0;
   height: calc(64px * 5 + 60px);
-  background-color: #121212; 
+  background-color: #121212;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.8);
   overflow: hidden;
   z-index: 1000;
@@ -136,16 +136,16 @@ ion-footer ion-button.active-tab {
 }
 
 ion-range {
-  --bar-height: 8px;          /* thicker progress bar */
+  --bar-height: 8px; /* thicker progress bar */
   --bar-border-radius: 4px;
-  --handle-size: 28px;        /* bigger draggable handle */
+  --handle-size: 28px; /* bigger draggable handle */
   --handle-border-radius: 14px;
   margin: 12px 0;
 }
 
 ion-range.full-width-slider {
-  width: 80%;          /* reduce width to 80% of container */
-  max-width: 400px;    /* limit max width */
+  width: 80%; /* reduce width to 80% of container */
+  max-width: 400px; /* limit max width */
   display: block;
   margin: 12px 0;
 
@@ -159,4 +159,21 @@ ion-range.full-width-slider {
     height: 28px !important;
     border-radius: 50% !important;
   }
+}
+
+/* Custom tooltip */
+.custom-tooltip {
+  position: absolute;
+  top: -30px; /* above slider */
+  transform: translateX(-50%);
+  background: var(--ion-color-primary);
+  color: white;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  z-index: 1000;
 }

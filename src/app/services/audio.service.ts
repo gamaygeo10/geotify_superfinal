@@ -1,11 +1,26 @@
 import { Injectable } from '@angular/core';
 import { LocalFilesService } from './local-files.service';
-import { Subject, Observable } from 'rxjs';
+import { Subject, Observable, BehaviorSubject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AudioService {
+  // Add format support information
+  private supportedFormats = {
+    mp3: true,
+    m4a: true,
+    aac: true,
+    wav: true,
+    ogg: true,
+    flac: true,
+    opus: true
+  };
+
+  // Add a subject to track format support
+  private formatSupportSubject = new BehaviorSubject<{[key: string]: boolean}>(this.supportedFormats);
+  public formatSupport$ = this.formatSupportSubject.asObservable();
+
   private _onTrackChange = new Subject<void>();
   public onTrackChange = this._onTrackChange.asObservable();
 
@@ -30,15 +45,58 @@ export class AudioService {
       this.saveNowPlayingState();
     });
 
+    // Check format support
+    this.checkFormatSupport();
+    
     this.restorePlayback();
   }
 
+  // Method to check which audio formats are supported by the browser
+  private checkFormatSupport() {
+    const audio = document.createElement('audio');
+    
+    // Check MP3 support
+    this.supportedFormats.mp3 = audio.canPlayType('audio/mpeg') !== '';
+    
+    // Check AAC support
+    this.supportedFormats.m4a = audio.canPlayType('audio/mp4; codecs="mp4a.40.2"') !== '';
+    this.supportedFormats.aac = audio.canPlayType('audio/aac') !== '';
+    
+    // Check WAV support
+    this.supportedFormats.wav = audio.canPlayType('audio/wav') !== '';
+    
+    // Check OGG support
+    this.supportedFormats.ogg = audio.canPlayType('audio/ogg; codecs="vorbis"') !== '';
+    
+    // Check FLAC support
+    this.supportedFormats.flac = audio.canPlayType('audio/flac') !== '';
+    
+    // Check Opus support
+    this.supportedFormats.opus = audio.canPlayType('audio/opus') !== '';
+    
+    // Update the subject with the supported formats
+    this.formatSupportSubject.next(this.supportedFormats);
+  }
+
+  // Method to get file extension from filename
+  private getFileExtension(filename: string): string {
+    return filename.split('.').pop()?.toLowerCase() || '';
+  }
+
+  // Method to check if a file format is supported
+  public isFormatSupported(filename: string): boolean {
+    const extension = this.getFileExtension(filename);
+    return this.supportedFormats[extension as keyof typeof this.supportedFormats] || false;
+  }
+
+  // Improved saveNowPlayingState method
   private saveNowPlayingState() {
     let localAudioCurrentTime = 0;
     if (this.localAudio) {
       const duration = this.localAudio.duration || 0;
       const currentTime = this.localAudio.currentTime;
-      localAudioCurrentTime = (duration > 0 && currentTime >= duration - 1) ? 0 : currentTime;
+      // Store the current time regardless of how close to the end it is
+      localAudioCurrentTime = isNaN(currentTime) ? 0 : currentTime;
     }
 
     const state = {
@@ -52,58 +110,82 @@ export class AudioService {
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
   }
 
+  // Improved restorePlayback method
   private async restorePlayback() {
     const saved = localStorage.getItem(this.STORAGE_KEY);
     if (!saved) return;
 
-    const state = JSON.parse(saved);
-    this.playlist = state.playlist || [];
-    this.currentIndex = state.currentIndex ?? 0;
-    this.currentTrack = state.currentTrack ?? null;
+    try {
+      const state = JSON.parse(saved);
+      this.playlist = state.playlist || [];
+      this.currentIndex = state.currentIndex ?? 0;
+      this.currentTrack = state.currentTrack ?? null;
 
-    if (state.isLocal && this.currentTrack) {
-      const file = await this.localFilesService.getFile(this.currentTrack.name);
-      if (file) {
-        if (this.localAudio) {
-          this.localAudio.pause();
-          this.localAudio.removeEventListener('ended', this.next.bind(this));
-          this.localAudio.removeEventListener('timeupdate', this.saveNowPlayingState.bind(this));
-        }
+      if (state.isLocal && this.currentTrack) {
+        const file = await this.localFilesService.getFile(this.currentTrack.name);
+        if (file) {
+          if (this.localAudio) {
+            this.localAudio.pause();
+            this.localAudio.removeEventListener('ended', this.next.bind(this));
+            this.localAudio.removeEventListener('timeupdate', this.saveNowPlayingState.bind(this));
+          }
 
-        this.localAudio = new Audio(URL.createObjectURL(file));
+          this.localAudio = new Audio(URL.createObjectURL(file));
 
-        await new Promise<void>((resolve) => {
-          this.localAudio!.addEventListener('loadedmetadata', () => {
-            if (state.localAudioCurrentTime >= this.localAudio!.duration) {
-              this.localAudio!.currentTime = 0;
-            } else {
-              this.localAudio!.currentTime = state.localAudioCurrentTime || 0;
-            }
-            resolve();
+          // Wait for metadata to load before setting currentTime
+          await new Promise<void>((resolve) => {
+            const onMetadataLoaded = () => {
+              // Set the saved position, ensuring it's within valid range
+              const savedTime = state.localAudioCurrentTime || 0;
+              if (savedTime > 0 && savedTime < (this.localAudio?.duration || 0)) {
+                this.localAudio!.currentTime = savedTime;
+              }
+              this.localAudio?.removeEventListener('loadedmetadata', onMetadataLoaded);
+              resolve();
+            };
+            
+            this.localAudio!.addEventListener('loadedmetadata', onMetadataLoaded);
+            
+            // Fallback in case loadedmetadata doesn't fire
+            setTimeout(() => {
+              if (this.localAudio) {
+                try {
+                  const savedTime = state.localAudioCurrentTime || 0;
+                  if (savedTime > 0 && this.localAudio.duration && savedTime < this.localAudio.duration) {
+                    this.localAudio.currentTime = savedTime;
+                  }
+                } catch (e) {
+                  console.error('Error setting local audio time:', e);
+                }
+              }
+              resolve();
+            }, 1000);
           });
-        });
 
-        this.localAudio.addEventListener('timeupdate', () => {
-          this.playbackTimeSubject.next(this.localAudio!.currentTime);
-          this.saveNowPlayingState();
-        });
+          // Add event listeners
+          this.localAudio.addEventListener('timeupdate', () => {
+            this.playbackTimeSubject.next(this.localAudio!.currentTime);
+            this.saveNowPlayingState();
+          });
 
-        this.localAudio.addEventListener('ended', () => {
-          this.localAudio!.currentTime = 0;
-          this.next();
-        });
+          this.localAudio.addEventListener('ended', () => {
+            this.localAudio!.currentTime = 0;
+            this.next();
+          });
 
-        this.currentIndex = -1;
+          this.currentIndex = -1;
 
-        // Notify UI that playback position has been restored
-        this.playbackRestoredSubject.next();
-
-        this._onTrackChange.next();
+          // Notify UI that playback position has been restored
+          this.playbackRestoredSubject.next();
+          this._onTrackChange.next();
+        }
+      } else if (this.playlist.length > 0 && this.currentIndex >= 0) {
+        this.audio.src = this.playlist[this.currentIndex].audio_url || this.playlist[this.currentIndex].audio || '';
+        this.audio.load();
+        this.audio.currentTime = state.currentTime || 0;
       }
-    } else if (this.playlist.length > 0 && this.currentIndex >= 0) {
-      this.audio.src = this.playlist[this.currentIndex].audio_url || this.playlist[this.currentIndex].audio || '';
-      this.audio.load();
-      this.audio.currentTime = state.currentTime || 0;
+    } catch (e) {
+      console.error('Error restoring playback:', e);
     }
   }
 
@@ -119,11 +201,24 @@ export class AudioService {
     return this.currentIndex === -1 && this.localAudio ? this.localAudio.duration || 0 : this.audio.duration || 0;
   }
 
+  // Improved seekTo method
   seekTo(seconds: number) {
-    if (this.currentIndex === -1 && this.localAudio) {
-      this.localAudio.currentTime = seconds;
-    } else {
-      this.audio.currentTime = seconds;
+    try {
+      if (seconds < 0) seconds = 0;
+      
+      if (this.currentIndex === -1 && this.localAudio) {
+        const maxTime = this.localAudio.duration || 100;
+        this.localAudio.currentTime = Math.min(seconds, maxTime);
+        // Force a save after seeking
+        this.saveNowPlayingState();
+      } else {
+        const maxTime = this.audio.duration || 100;
+        this.audio.currentTime = Math.min(seconds, maxTime);
+        // Force a save after seeking
+        this.saveNowPlayingState();
+      }
+    } catch (e) {
+      console.error('Error seeking:', e);
     }
   }
 
@@ -219,40 +314,39 @@ export class AudioService {
   }
 
   previous() {
-  if (this.currentIndex === -1) {
-    // Local track handling
-    if (!this.currentTrack) {
-      this.stop();
-      return;
-    }
-    const currentLocalIndex = this.playlist.findIndex(t => this.isSameTrack(t, this.currentTrack));
+    if (this.currentIndex === -1) {
+      // Local track handling
+      if (!this.currentTrack) {
+        this.stop();
+        return;
+      }
+      const currentLocalIndex = this.playlist.findIndex(t => this.isSameTrack(t, this.currentTrack));
 
-    if (currentLocalIndex > 0) {
-      this.currentIndex = currentLocalIndex - 1;
-      this.currentTrack = null;
-      this.playCurrent();
+      if (currentLocalIndex > 0) {
+        this.currentIndex = currentLocalIndex - 1;
+        this.currentTrack = null;
+        this.playCurrent();
+      } else {
+        // At first local track: restart or loop to last local track
+        this.currentIndex = this.playlist.length - 1;
+        this.currentTrack = null;
+        this.playCurrent();
+      }
     } else {
-      // At first local track: restart or loop to last local track
-      this.currentIndex = this.playlist.length - 1;
-      this.currentTrack = null;
-      this.playCurrent();
+      // Streaming or normal playlist handling
+      if (this.currentIndex > 0) {
+        this.currentIndex--;
+        this.currentTrack = null;
+        this.playCurrent();
+      } else {
+        // At first track: restart or loop to last
+        this.currentIndex = this.playlist.length - 1;
+        this.currentTrack = null;
+        this.playCurrent();
+      }
     }
-  } else {
-    // Streaming or normal playlist handling
-    if (this.currentIndex > 0) {
-      this.currentIndex--;
-      this.currentTrack = null;
-      this.playCurrent();
-    } else {
-      // At first track: restart or loop to last
-      this.currentIndex = this.playlist.length - 1;
-      this.currentTrack = null;
-      this.playCurrent();
-    }
+    this.saveNowPlayingState();
   }
-  this.saveNowPlayingState();
-}
-
 
   isPaused(): boolean {
     return this.currentIndex === -1 && this.localAudio ? this.localAudio.paused : this.audio.paused;
@@ -281,8 +375,17 @@ export class AudioService {
     this.saveNowPlayingState();
   }
 
+  // Improved playLocalTrack method
   async playLocalTrack(track: any) {
     if (!track.name) return;
+    
+    // Check if format is supported
+    const extension = this.getFileExtension(track.name);
+    if (!this.isFormatSupported(track.name)) {
+      console.warn(`Format ${extension} may not be supported in this browser`);
+      // Continue anyway, the browser will try its best
+    }
+    
     const file = await this.localFilesService.getFile(track.name);
     if (!file) return;
 
@@ -294,8 +397,41 @@ export class AudioService {
       this.localAudio.removeEventListener('timeupdate', this.saveNowPlayingState.bind(this));
     }
 
-    this.localAudio = new Audio(URL.createObjectURL(file));
+    // Create a blob URL for the audio file
+    const blobUrl = URL.createObjectURL(file);
+    this.localAudio = new Audio(blobUrl);
+    
+    // Set MIME type if possible (helps with some formats)
+    if (file.type) {
+      //this.localAudio.type = file.type;
+    }
+    
     this.localAudio.load();
+
+    // Try to restore position if it's the same track
+    const saved = localStorage.getItem(this.STORAGE_KEY);
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        if (state.isLocal && state.currentTrack && state.currentTrack.name === track.name) {
+          // Wait for metadata to load before setting time
+          await new Promise<void>((resolve) => {
+            this.localAudio!.addEventListener('loadedmetadata', () => {
+              if (state.localAudioCurrentTime > 0 && 
+                  state.localAudioCurrentTime < (this.localAudio?.duration || 0)) {
+                this.localAudio!.currentTime = state.localAudioCurrentTime;
+              }
+              resolve();
+            });
+            
+            // Fallback
+            setTimeout(resolve, 1000);
+          });
+        }
+      } catch (e) {
+        console.error('Error restoring local track position:', e);
+      }
+    }
 
     this.localAudio.addEventListener('ended', () => {
       this.localAudio!.currentTime = 0;
@@ -307,13 +443,26 @@ export class AudioService {
       this.saveNowPlayingState();
     });
 
-    await this.localAudio.play();
+    // Add error handling
+    this.localAudio.addEventListener('error', (e) => {
+      console.error('Audio playback error:', this.localAudio?.error);
+      // Try to recover by moving to next track
+      setTimeout(() => this.next(), 2000);
+    });
+
+    try {
+      await this.localAudio.play();
+    } catch (e) {
+      console.error('Error playing local track:', e);
+      // Don't give up, let the user try to play manually
+    }
 
     this.currentIndex = -1;
     this.currentTrack = {
       name: track.name || 'Unknown Title',
       artist_name: track.artist_name || 'Unknown Artist',
       album_image: track.album_image || 'assets/img/default-album.png',
+      format: extension,
       ...track,
     };
 
@@ -347,4 +496,11 @@ export class AudioService {
   getPlaybackTimeObservable(): Observable<number> {
     return this.playbackTime$;
   }
+
+  // Add method to get supported formats
+  getSupportedFormats(): {[key: string]: boolean} {
+    return {...this.supportedFormats};
+  }
 }
+
+

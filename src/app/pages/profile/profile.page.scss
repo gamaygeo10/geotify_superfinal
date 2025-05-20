@@ -33,14 +33,6 @@ ion-thumbnail img {
   height: 48px;
 }
 
-ion-button[slot="end"] {
-  margin-left: 4px;
-}
-
-app-mini-player {
-  margin-bottom: 8px;
-}
-
 .mini-player-wrapper {
   position: fixed;
   bottom: 56px; 
@@ -68,7 +60,14 @@ app-mini-player {
   margin-bottom: 12px;
 }
 
-/* Added styles below */
+/* Add button wrapper */
+.add-song-wrapper {
+  position: fixed;
+  bottom: 112px; /* above mini-player */
+  right: 16px;
+  z-index: 110;
+  margin-bottom: 50px;
+}
 
 ion-list-header {
   display: flex;
@@ -92,7 +91,6 @@ ion-button[slot="end"] ion-icon {
   font-size: 18px; /* smaller close icon */
 }
 
-/* profile.page.scss */
 ion-footer {
   position: fixed;
   bottom: 0;
@@ -100,6 +98,7 @@ ion-footer {
   right: 0;
   z-index: 10;
 }
+
 ion-content {
   padding-bottom: 56px; /* height of the footer so content doesn't get hidden */
 }

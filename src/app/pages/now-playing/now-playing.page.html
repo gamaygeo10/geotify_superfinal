@@ -20,18 +20,30 @@
       <h2 class="track-title">{{ track.name }}</h2>
       <p class="track-artist">{{ track.artist_name }}</p>
 
+      <!-- Wide progress slider -->
       <ion-range
+        class="full-width-slider"
         min="0"
         [max]="duration"
         [value]="currentTime"
         (ionChange)="onSeek($event)"
-        pin="true"
+        (ionKnobMove)="onKnobMove($event)"
+        pin="false"
         step="0.1"
-        class="full-width-slider"
+        #range
       >
         <ion-label slot="start">{{ formatTime(currentTime) }}</ion-label>
         <ion-label slot="end">{{ formatTime(duration) }}</ion-label>
       </ion-range>
+
+      <!-- Custom tooltip near knob -->
+      <div
+        class="custom-tooltip"
+        [style.left.px]="tooltipLeft"
+        *ngIf="showTooltip"
+      >
+        {{ formatTime(tooltipValue) }}
+      </div>
 
       <ion-buttons>
         <ion-button (click)="previous()">

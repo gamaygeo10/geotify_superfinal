@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { AudioService } from '../../services/audio.service';
 import { NavController, AlertController } from '@ionic/angular';
 import { Subscription, interval } from 'rxjs';
@@ -10,11 +10,17 @@ import { Subscription, interval } from 'rxjs';
   standalone: false,
 })
 export class NowPlayingPage implements OnInit, OnDestroy {
+  @ViewChild('range', { static: false }) range!: ElementRef;
+
   showQueue = false;
   currentTime = 0;
   duration = 0;
   private timerSub?: Subscription;
   private playbackRestoredSub?: Subscription;
+
+  tooltipLeft = 0;
+  tooltipValue = 0;
+  showTooltip = false;
 
   constructor(
     public audioService: AudioService,
@@ -57,10 +63,24 @@ export class NowPlayingPage implements OnInit, OnDestroy {
     if (this.playbackRestoredSub) this.playbackRestoredSub.unsubscribe();
   }
 
+  onKnobMove(event: any) {
+    this.showTooltip = true;
+    this.tooltipValue = event.detail.value;
+
+    if (this.range) {
+      const sliderEl = this.range.nativeElement;
+      const rect = sliderEl.getBoundingClientRect();
+      const percent = (this.tooltipValue / this.duration) || 0;
+      const knobWidth = 28; // must match CSS knob size
+      const leftPos = percent * (rect.width - knobWidth) + knobWidth / 2;
+      this.tooltipLeft = leftPos;
+    }
+  }
+
   onSeek(event: any) {
-    const seekTime = event.detail.value;
-    this.currentTime = seekTime;
-    this.audioService.seekTo(seekTime);
+    this.currentTime = event.detail.value;
+    this.audioService.seekTo(this.currentTime);
+    this.showTooltip = false;
   }
 
   formatTime(seconds: number): string {

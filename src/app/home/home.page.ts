@@ -1,6 +1,6 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { JamendoService } from '../services/spotify.service';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AudioService } from '../services/audio.service';
 import { AlertController } from '@ionic/angular';
 import { LocalFilesService } from '../services/local-files.service';
@@ -20,27 +20,40 @@ export class HomePage implements OnInit {
   filteredLocalTracks: any[] = [];
   recentSongs: any[] = [];
   topSongs: any[] = [];
-  shuffledTopSongs: any[] = [];
   genreSongs: any = {};
   genres: string[] = ['pop', 'rock', 'jazz', 'hiphop', 'classical'];
   localTracks: any[] = [];
 
+  addMode = false;
+  isReverseOrder = false; // controls display order
+
   constructor(
     private jamendo: JamendoService,
     private router: Router,
+    private route: ActivatedRoute,
     private audioService: AudioService,
     private alertCtrl: AlertController,
     private localFilesService: LocalFilesService
   ) {}
 
   async ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      this.addMode = params['addMode'] === 'true';
+    });
+
     this.loadRecentSongs();
 
     window.addEventListener('recentSongsUpdated', (event: any) => {
       this.recentSongs = event.detail.slice(0, 3);
     });
 
-    this.loadRecentSongs();
+    this.audioService.onTrackChange.subscribe(() => {
+      const currentTrack = this.audioService.getCurrentTrack();
+      if (currentTrack) {
+        this.saveRecentlyPlayed(currentTrack);
+      }
+    });
+
     this.loadTopSongs();
     this.loadGenreSongs();
     await this.loadLocalTracks();
@@ -49,15 +62,7 @@ export class HomePage implements OnInit {
   async loadTopSongs() {
     this.jamendo.getTopSongs().subscribe((res: any) => {
       this.topSongs = res.results;
-      this.shuffleTopSongs();
     });
-  }
-
-  shuffleTopSongs() {
-    this.shuffledTopSongs = this.topSongs
-      .map(song => ({ song, sort: Math.random() }))
-      .sort((a, b) => a.sort - b.sort)
-      .map(({ song }) => song);
   }
 
   async loadLocalTracks() {
@@ -72,7 +77,6 @@ export class HomePage implements OnInit {
   }
 
   onPlayModeChange(event: any) {
-    // Keep searchQuery intact, just update results for new mode
     this.tracks = [];
     this.filteredLocalTracks = [];
 
@@ -108,40 +112,68 @@ export class HomePage implements OnInit {
     }
   }
 
-  playTrack(track: any, sourceList: any[] = [track]) {
-  if (this.playMode === 'streaming') {
-    const index = sourceList.findIndex(t => t.id === track.id);
-    this.audioService.setPlaylist(sourceList, index);
-    this.router.navigate(['/now-playing']);
-    this.saveRecentlyPlayed(track);
-    // Clear search and tracks when playing a song from search
-    this.searchQuery = '';
-    this.tracks = [];
-  } else {
-    const index = this.localTracks.findIndex(t => t.name === track.name);
-    if (index !== -1) {
-      this.audioService.setPlaylist(this.localTracks, index);
-      this.router.navigate(['/now-playing']);
-    } else {
-      this.audioService.playLocalTrack(track);
-      this.router.navigate(['/now-playing']);
-    }
-    this.saveRecentlyPlayed(track);
-    // Clear local search as well when playing local song
-    this.searchQuery = '';
-    this.filteredLocalTracks = [];
-  }
-}
-
-
-  async addToPlaylist(track: any, event: Event) {
+  async onTrackSelected(track: any, event: Event) {
     event.stopPropagation();
+
+    if (this.addMode) {
+      // In addMode: ALWAYS add to playlist, do NOT play
+      await this.addToPlaylist(track);
+    } else {
+      // Normal play behavior
+      this.playTrack(track);
+    }
+  }
+
+  playTrack(track: any) {
+    if (this.playMode === 'streaming') {
+      let sourceList: any[] = [];
+
+      if (this.searchQuery.trim()) {
+        sourceList = this.tracks;
+      } else if (this.recentSongs.some(s => s.id === track.id)) {
+        sourceList = this.recentSongs;
+      } else if (this.topSongs.some(s => s.id === track.id)) {
+        sourceList = this.topSongs;
+      } else {
+        sourceList = this.topSongs;
+      }
+
+      const index = sourceList.findIndex(t => t.id === track.id);
+
+      if (index === -1) {
+        this.audioService.setPlaylist([track], 0);
+      } else {
+        this.audioService.setPlaylist(sourceList, index);
+      }
+
+      this.router.navigate(['/now-playing']);
+      this.saveRecentlyPlayed(track);
+      this.searchQuery = '';
+      this.tracks = [];
+    } else {
+      const index = this.localTracks.findIndex(t => t.name === track.name);
+      if (index !== -1) {
+        this.audioService.setPlaylist(this.localTracks, index);
+      } else {
+        this.audioService.playLocalTrack(track);
+      }
+      this.router.navigate(['/now-playing']);
+      this.saveRecentlyPlayed(track);
+      this.searchQuery = '';
+      this.filteredLocalTracks = [];
+    }
+  }
+
+  async addToPlaylist(track: any) {
     const playlistKey = 'userPlaylist';
     let playlist = JSON.parse(localStorage.getItem(playlistKey) || '[]');
 
     const exists = playlist.some(
-      (song: any) => (song.id && track.id && song.id === track.id) || (song.name === track.name)
+      (song: any) =>
+        (song.id && track.id && song.id === track.id) ||
+        (song.name && track.name && song.name === track.name)
     );
+
     if (exists) {
       const alert = await this.alertCtrl.create({
         header: 'Already Added',
@@ -155,12 +187,17 @@ export class HomePage implements OnInit {
     playlist.push(track);
     localStorage.setItem(playlistKey, JSON.stringify(playlist));
 
+    window.dispatchEvent(new CustomEvent('userPlaylistUpdated', { detail: playlist }));
+
     const alert = await this.alertCtrl.create({
       header: 'Added to Playlist',
       message: `"${track.name}" was added to your playlist.`,
       buttons: ['OK'],
     });
     await alert.present();
+
+    this.addMode = false;
+    this.router.navigate(['/profile']);
   }
 
   saveRecentlyPlayed(track: any) {
@@ -209,7 +246,7 @@ export class HomePage implements OnInit {
     }
 
     this.localTracks = [...this.localTracks, ...newTracks];
-    localStorage.setItem('localTracks', JSON.stringify(this.localTracks.map(({filePath, ...rest}) => rest)));
+    localStorage.setItem('localTracks', JSON.stringify(this.localTracks.map(({ filePath, ...rest }) => rest)));
 
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';
@@ -253,14 +290,51 @@ export class HomePage implements OnInit {
     });
   }
 
-  // Update the method to handle home icon click
+  getTopSongsForDisplay(): any[] {
+    return this.isReverseOrder ? [...this.topSongs].reverse() : this.topSongs;
+  }
+
+  getGenreSongsForDisplay(genre: string): any[] {
+    const songs = this.genreSongs[genre] || [];
+    return this.isReverseOrder ? [...songs].reverse() : songs;
+  }
+
   navigateToStreaming() {
     this.playMode = 'streaming';
-    // Clear any search results when switching modes
     this.searchQuery = '';
     this.tracks = [];
     this.filteredLocalTracks = [];
   }
+
+  playTrackFromList(track: any, list: any[]) {
+    if (this.addMode) {
+      // In add mode, just add to playlist, don't play
+      this.addToPlaylist(track);
+      return;
+    }
+
+    if (this.playMode === 'streaming') {
+      const index = list.findIndex(t => t.id === track.id);
+      if (index === -1) {
+        this.audioService.setPlaylist([track], 0);
+      } else {
+        this.audioService.setPlaylist(list, index);
+      }
+      this.router.navigate(['/now-playing']);
+      this.saveRecentlyPlayed(track);
+      this.searchQuery = '';
+      this.tracks = [];
+    } else {
+      const index = this.localTracks.findIndex(t => t.name === track.name);
+      if (index !== -1) {
+        this.audioService.setPlaylist(this.localTracks, index);
+      } else {
+        this.audioService.playLocalTrack(track);
+      }
+      this.router.navigate(['/now-playing']);
+      this.saveRecentlyPlayed(track);
+      this.searchQuery = '';
+      this.filteredLocalTracks = [];
+    }
+  }
 }
-
-

@@ -6,32 +6,30 @@
 
 <ion-content class="ion-padding">
 
- <ion-searchbar
-  [(ngModel)]="searchQuery"
-  debounce="0"
-  showCancelButton="never"
-  placeholder="Search songs"
-  (ionInput)="searchTracks()"
-  mode="ios"
-></ion-searchbar>
+  <!-- Search Bar -->
+  <ion-searchbar
+    [(ngModel)]="searchQuery"
+    debounce="0"
+    showCancelButton="never"
+    placeholder="Search songs"
+    (ionInput)="searchTracks()"
+    mode="ios"
+  ></ion-searchbar>
 
-<div style="padding-bottom: 16px;">
   <ion-segment
     [(ngModel)]="playMode"
     (ionChange)="onPlayModeChange($event)"
+    class="small-segment"
   >
     <ion-segment-button value="streaming">Streaming</ion-segment-button>
-    <ion-segment-button value="local">Local</ion-segment-button>
+    <ion-segment-button value="local">Local Music</ion-segment-button>
   </ion-segment>
-</div>
-
-
 
   <!-- Inline Search Results -->
   <ion-list *ngIf="searchQuery.trim()">
     <ion-item
       *ngFor="let track of playMode === 'streaming' ? tracks : filteredLocalTracks"
-      (click)="playTrack(track, playMode === 'streaming' ? tracks : localTracks)"
+      (click)="onTrackSelected(track, $event)"
     >
       <ion-thumbnail slot="start">
         <img [src]="track.album_image || 'assets/img/local-music.png'" />
@@ -46,7 +44,7 @@
   <!-- Recently Played (max 3) -->
   <ion-card *ngIf="playMode === 'streaming' && !searchQuery.trim() && recentSongs.length">
     <ion-card-header>Recently Played</ion-card-header>
-    <ion-item *ngFor="let song of recentSongs" (click)="playTrack(song, recentSongs)">
+    <ion-item *ngFor="let song of recentSongs" (click)="playTrackFromList(song, recentSongs)">
       <ion-thumbnail slot="start">
         <img [src]="song.album_image || 'assets/img/local-music.png'" />
       </ion-thumbnail>
@@ -75,9 +73,9 @@
 
   <!-- Streaming Mode Content -->
   <div *ngIf="playMode === 'streaming' && !searchQuery.trim()">
-    <div class="section-header top-songs-header">Top Songs</div>
+    <div class="section-header">Top Songs</div>
     <div class="horizontal-scroll">
-      <div class="song-card" *ngFor="let song of shuffledTopSongs" (click)="playTrack(song, topSongs)">
+      <div class="song-card" *ngFor="let song of getTopSongsForDisplay()" (click)="playTrackFromList(song, getTopSongsForDisplay())">
         <img [src]="song.album_image" />
         <div class="song-info">
           <h4>{{ song.name }}</h4>
@@ -89,7 +87,7 @@
     <ng-container *ngFor="let genre of genres">
       <div class="section-header">{{ genre | titlecase }} Songs</div>
       <div class="horizontal-scroll">
-        <div class="song-card" *ngFor="let song of genreSongs[genre]" (click)="playTrack(song, genreSongs[genre])">
+        <div class="song-card" *ngFor="let song of getGenreSongsForDisplay(genre)" (click)="playTrackFromList(song, getGenreSongsForDisplay(genre))">
           <img [src]="song.album_image" />
           <div class="song-info">
             <h4>{{ song.name }}</h4>
@@ -103,7 +101,7 @@
   <!-- Local Music List -->
   <div *ngIf="playMode === 'local' && !searchQuery.trim()">
     <ion-list *ngIf="localTracks.length; else noLocalTracks">
-      <ion-item *ngFor="let track of localTracks" (click)="playTrack(track, localTracks)">
+      <ion-item *ngFor="let track of localTracks" (click)="onTrackSelected(track, $event)">
         <ion-thumbnail slot="start" class="local-music-thumbnail">
           <img [src]="track.album_image || 'assets/img/local-music.png'" />
         </ion-thumbnail>
@@ -131,7 +129,13 @@
     <ion-grid>
       <ion-row>
         <ion-col class="ion-text-center">
-          <ion-button fill="clear" (click)="navigateToStreaming()" routerLinkActive="active-tab" [routerLinkActiveOptions]="{ exact: true }">
+          <!-- Home button with streaming mode forced -->
+          <ion-button 
+            fill="clear" 
+            [routerLink]="['/home']" 
+            [queryParams]="{ playMode: 'streaming' }" 
+            routerLinkActive="active-tab" 
+            [routerLinkActiveOptions]="{ exact: true }">
             <ion-icon name="home-outline"></ion-icon>
           </ion-button>
         </ion-col>
@@ -151,13 +155,3 @@
     </ion-grid>
   </ion-toolbar>
 </ion-footer>
-
-
-
-
-
-
-
-
-
-
