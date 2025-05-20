@@ -1,0 +1,41 @@
+.mini-player {
+  --padding-start: 10px;
+  --inner-padding-end: 10px;
+  --min-height: 70px;
+  background: #f9f9f9;
+  border-top: 1px solid #ddd;
+  cursor: pointer;  /* Indicate it's clickable */
+  display: flex;
+  align-items: center;
+}
+
+ion-thumbnail img {
+  border-radius: 6px;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+}
+
+ion-label {
+  flex: 1;
+  padding: 0 12px;
+  overflow: hidden;
+}
+
+ion-label h3, ion-label p {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+ion-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+ion-button {
+  --padding-start: 4px;
+  --padding-end: 4px;
+}

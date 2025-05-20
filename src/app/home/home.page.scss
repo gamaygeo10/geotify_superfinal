@@ -1,0 +1,173 @@
+ion-content {
+  position: relative;
+}
+
+ion-searchbar {
+  margin-bottom: 8px;
+}
+
+/* Inline search results container */
+ion-list {
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--ion-background-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+
+/* Completely redesigned segment to fix bottom cutoff */
+ion-segment {
+  --padding-start: 0;
+  --padding-end: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+
+  ion-segment-button {
+    height: 36px;
+    line-height: 36px;
+    padding: 0 16px;
+    font-size: 14px;
+    --color: white;
+
+    &.segment-button-checked {
+      --color: var(--ion-color-primary);
+    }
+  }
+}
+
+
+
+/* Add this to ensure segment buttons don't get cut off */
+ion-segment-button::part(indicator) {
+  display: none;
+}
+
+/* Ensure the segment container has proper overflow handling */
+ion-segment::part(scroll) {
+  overflow: visible;
+}
+
+/* Card and item styling */
+ion-card, ion-item {
+  background-color: var(--ion-card-background) !important;
+  color: var(--ion-text-color) !important;
+}
+
+/* Horizontal scroll container */
+.horizontal-scroll {
+  display: flex;
+  overflow-x: auto;
+  padding: 12px 16px;
+  gap: 16px;
+  scroll-snap-type: x mandatory;
+}
+
+/* Song card styling */
+.song-card {
+  flex: 0 0 auto;
+  width: 160px;
+  background: var(--ion-card-background);
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(29, 185, 84, 0.4);
+  transition: transform 0.2s ease;
+}
+
+.song-card:hover {
+  transform: scale(1.05);
+}
+
+.song-card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.song-info {
+  padding: 10px 8px;
+  color: var(--ion-text-color);
+}
+
+.song-info h4 {
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.song-info p {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+
+/* Local music header */
+.local-music-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px;
+}
+
+/* Local music thumbnail */
+.local-music-thumbnail img {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+/* Delete button styling */
+ion-button[slot='end'] {
+  margin-left: 10px;
+}
+
+/* No local music message */
+.no-local-music-message {
+  text-align: center;
+  margin-top: 40vh;
+  color: var(--ion-color-medium);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Section header */
+.section-header {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--ion-text-color);
+  margin: 24px 16px 8px;
+}
+
+/* Add a specific class for the top songs section */
+.top-songs-header {
+  margin-top: 24px; /* Increased from 24px to move it 8px down */
+}
+
+/* Footer styling */
+ion-footer {
+  --background: var(--ion-toolbar-background);
+  border-top: 1px solid #282828;
+}
+
+/* Buttons color */
+ion-button {
+  --color: var(--ion-color-medium);
+  --color-activated: var(--ion-color-primary);
+}
+
+/* Active tab icon color */
+.active-tab ion-icon, .active-tab {
+  color: var(--ion-color-primary) !important;
+}
+
+
+
+
+
+
+
+

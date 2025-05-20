@@ -1,0 +1,25 @@
+<ion-item *ngIf="track && visible" lines="full" class="mini-player" (click)="goToNowPlaying()">
+  <ion-thumbnail slot="start">
+    <img [src]="track.album_image || 'assets/img/default-album.png'" />
+  </ion-thumbnail>
+
+  <ion-label>
+    <h3>{{ track.name || 'Unknown Title' }}</h3>
+    <p>{{ track.artist_name || 'Unknown Artist' }}</p>
+  </ion-label>
+
+  <ion-buttons slot="end">
+    <ion-button fill="clear" (click)="playPrevious($event)">
+      <ion-icon name="play-skip-back-outline"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" (click)="togglePlayPause($event)">
+      <ion-icon [name]="isPaused ? 'play' : 'pause'"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" (click)="playNext($event)">
+      <ion-icon name="play-skip-forward-outline"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" color="light" (click)="closeMiniPlayer($event)">
+      <ion-icon name="close-outline" color="white"></ion-icon>
+    </ion-button>
+  </ion-buttons>
+</ion-item>

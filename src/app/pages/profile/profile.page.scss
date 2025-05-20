@@ -1,0 +1,120 @@
+@import 'swiper/swiper.min.css';
+
+ion-avatar {
+  display: block;
+  margin: 0 auto;
+  width: 100px;
+  height: 100px;
+}
+
+app-mini-player {
+  margin-bottom: 8px;
+}
+
+ion-button[slot="end"] {
+  margin-left: 4px;
+}
+
+ion-list {
+  margin: 0;
+  padding: 0;
+}
+
+ion-item {
+  --padding-start: 10px;
+  --inner-padding-end: 10px;
+  --min-height: 64px;
+}
+
+ion-thumbnail img {
+  border-radius: 6px;
+  object-fit: cover;
+  width: 48px;
+  height: 48px;
+}
+
+ion-button[slot="end"] {
+  margin-left: 4px;
+}
+
+app-mini-player {
+  margin-bottom: 8px;
+}
+
+.mini-player-wrapper {
+  position: fixed;
+  bottom: 56px; 
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: white;
+  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.empty-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 120px);
+  color: var(--ion-color-medium);
+  text-align: center;
+  font-size: 16px;
+  padding: 20px;
+}
+
+.empty-message ion-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+/* Added styles below */
+
+ion-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: bold;
+  font-size: 18px;
+  padding-right: 12px; /* space for add button */
+}
+
+ion-list-header ion-button {
+  margin: 0;
+  padding: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  height: 28px;
+  width: 28px;
+}
+
+ion-button[slot="end"] ion-icon {
+  font-size: 18px; /* smaller close icon */
+}
+
+/* profile.page.scss */
+ion-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+ion-content {
+  padding-bottom: 56px; /* height of the footer so content doesn't get hidden */
+}
+
+ion-footer ion-button {
+  --color: white;
+  --color-activated: var(--ion-color-primary);
+}
+
+ion-footer ion-button ion-icon {
+  color: white;
+  transition: color 0.3s ease;
+}
+
+ion-footer ion-button.active-tab ion-icon,
+ion-footer ion-button.active-tab {
+  color: var(--ion-color-primary) !important;
+}

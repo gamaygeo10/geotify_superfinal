@@ -1,0 +1,163 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Geotify</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+ <ion-searchbar
+  [(ngModel)]="searchQuery"
+  debounce="0"
+  showCancelButton="never"
+  placeholder="Search songs"
+  (ionInput)="searchTracks()"
+  mode="ios"
+></ion-searchbar>
+
+<div style="padding-bottom: 16px;">
+  <ion-segment
+    [(ngModel)]="playMode"
+    (ionChange)="onPlayModeChange($event)"
+  >
+    <ion-segment-button value="streaming">Streaming</ion-segment-button>
+    <ion-segment-button value="local">Local</ion-segment-button>
+  </ion-segment>
+</div>
+
+
+
+  <!-- Inline Search Results -->
+  <ion-list *ngIf="searchQuery.trim()">
+    <ion-item
+      *ngFor="let track of playMode === 'streaming' ? tracks : filteredLocalTracks"
+      (click)="playTrack(track, playMode === 'streaming' ? tracks : localTracks)"
+    >
+      <ion-thumbnail slot="start">
+        <img [src]="track.album_image || 'assets/img/local-music.png'" />
+      </ion-thumbnail>
+      <ion-label>
+        <h2>{{ track.name }}</h2>
+        <p>{{ track.artist_name }}</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+
+  <!-- Recently Played (max 3) -->
+  <ion-card *ngIf="playMode === 'streaming' && !searchQuery.trim() && recentSongs.length">
+    <ion-card-header>Recently Played</ion-card-header>
+    <ion-item *ngFor="let song of recentSongs" (click)="playTrack(song, recentSongs)">
+      <ion-thumbnail slot="start">
+        <img [src]="song.album_image || 'assets/img/local-music.png'" />
+      </ion-thumbnail>
+      <ion-label>
+        <h3>{{ song.name }}</h3>
+        <p>{{ song.artist_name }}</p>
+      </ion-label>
+    </ion-item>
+  </ion-card>
+
+  <!-- Local Music Header with Add Button: hidden while searching -->
+  <div *ngIf="playMode === 'local' && !searchQuery.trim()" class="local-music-header">
+    <ion-list-header>Local Music Files</ion-list-header>
+    <ion-button fill="clear" size="small" (click)="fileInput.click()">
+      <ion-icon name="add-outline" slot="icon-only" style="font-size: 25px;"></ion-icon>
+    </ion-button>
+    <input
+      #fileInput
+      type="file"
+      (change)="onLocalFilesSelected($event)"
+      accept="audio/*"
+      multiple
+      hidden
+    />
+  </div>
+
+  <!-- Streaming Mode Content -->
+  <div *ngIf="playMode === 'streaming' && !searchQuery.trim()">
+    <div class="section-header top-songs-header">Top Songs</div>
+    <div class="horizontal-scroll">
+      <div class="song-card" *ngFor="let song of shuffledTopSongs" (click)="playTrack(song, topSongs)">
+        <img [src]="song.album_image" />
+        <div class="song-info">
+          <h4>{{ song.name }}</h4>
+          <p>{{ song.artist_name }}</p>
+        </div>
+      </div>
+    </div>
+
+    <ng-container *ngFor="let genre of genres">
+      <div class="section-header">{{ genre | titlecase }} Songs</div>
+      <div class="horizontal-scroll">
+        <div class="song-card" *ngFor="let song of genreSongs[genre]" (click)="playTrack(song, genreSongs[genre])">
+          <img [src]="song.album_image" />
+          <div class="song-info">
+            <h4>{{ song.name }}</h4>
+            <p>{{ song.artist_name }}</p>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- Local Music List -->
+  <div *ngIf="playMode === 'local' && !searchQuery.trim()">
+    <ion-list *ngIf="localTracks.length; else noLocalTracks">
+      <ion-item *ngFor="let track of localTracks" (click)="playTrack(track, localTracks)">
+        <ion-thumbnail slot="start" class="local-music-thumbnail">
+          <img [src]="track.album_image || 'assets/img/local-music.png'" />
+        </ion-thumbnail>
+        <ion-label>
+          <h3>{{ track.name }}</h3>
+          <p>{{ track.artist_name }}</p>
+        </ion-label>
+        <ion-button fill="clear" color="medium" slot="end" (click)="confirmDelete(track, $event)">
+          <ion-icon name="close-outline" slot="icon-only" style="font-size: 15px;"></ion-icon>
+        </ion-button>
+      </ion-item>
+    </ion-list>
+
+    <ng-template #noLocalTracks>
+      <div class="no-local-music-message">No local music files found.</div>
+    </ng-template>
+  </div>
+
+</ion-content>
+
+<app-mini-player></app-mini-player>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-grid>
+      <ion-row>
+        <ion-col class="ion-text-center">
+          <ion-button fill="clear" (click)="navigateToStreaming()" routerLinkActive="active-tab" [routerLinkActiveOptions]="{ exact: true }">
+            <ion-icon name="home-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+
+        <ion-col class="ion-text-center">
+          <ion-button fill="clear" routerLink="/now-playing" routerLinkActive="active-tab">
+            <ion-icon name="musical-notes-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+
+        <ion-col class="ion-text-center">
+          <ion-button fill="clear" routerLink="/profile" routerLinkActive="active-tab">
+            <ion-icon name="person-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ion-toolbar>
+</ion-footer>
+
+
+
+
+
+
+
+
+
+

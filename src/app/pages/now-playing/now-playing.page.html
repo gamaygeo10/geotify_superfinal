@@ -1,0 +1,113 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Now Playing</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content fullscreen>
+  <div class="action-buttons">
+    <ion-button fill="clear" (click)="goBack()">
+      <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" (click)="toggleQueue()">
+      <ion-icon slot="icon-only" name="list-outline"></ion-icon>
+    </ion-button>
+  </div>
+
+  <div class="now-playing-center" [class.shifted-up]="showQueue">
+    <ng-container *ngIf="track; else noTrack">
+      <img [src]="track.album_image || 'assets/img/default-album.png'" class="track-img" />
+      <h2 class="track-title">{{ track.name }}</h2>
+      <p class="track-artist">{{ track.artist_name }}</p>
+
+      <ion-range
+        min="0"
+        [max]="duration"
+        [value]="currentTime"
+        (ionChange)="onSeek($event)"
+        pin="true"
+        step="0.1"
+        class="full-width-slider"
+      >
+        <ion-label slot="start">{{ formatTime(currentTime) }}</ion-label>
+        <ion-label slot="end">{{ formatTime(duration) }}</ion-label>
+      </ion-range>
+
+      <ion-buttons>
+        <ion-button (click)="previous()">
+          <ion-icon name="play-skip-back-outline"></ion-icon>
+        </ion-button>
+
+        <ion-button (click)="togglePlayPause()">
+          <ion-icon [name]="isPaused ? 'play' : 'pause'"></ion-icon>
+        </ion-button>
+
+        <ion-button (click)="next()">
+          <ion-icon name="play-skip-forward-outline"></ion-icon>
+        </ion-button>
+
+        <ion-button (click)="addToPlaylist()">
+          <ion-icon name="add-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </ng-container>
+
+    <ng-template #noTrack>
+      <div class="empty-state">
+        <ion-icon name="musical-notes-outline" size="large"></ion-icon>
+        <p>No song is currently playing.</p>
+      </div>
+    </ng-template>
+  </div>
+
+  <div class="queue-panel" *ngIf="showQueue">
+    <div class="queue-header">
+      <h3>Upcoming Songs</h3>
+      <ion-button fill="clear" size="small" (click)="toggleQueue()">
+        <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+      </ion-button>
+    </div>
+
+    <ion-list *ngIf="upcomingQueue.length > 0; else emptyQueue" class="dark-list">
+      <ion-item *ngFor="let item of upcomingQueue" (click)="playFromQueue(item)">
+        <ion-thumbnail slot="start">
+          <img [src]="item.album_image || 'assets/img/default-album.png'" />
+        </ion-thumbnail>
+        <ion-label>
+          <h3>{{ item.name }}</h3>
+          <p>{{ item.artist_name }}</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+
+    <ng-template #emptyQueue>
+      <ion-item class="dark-list">
+        <ion-label>No upcoming songs in the queue.</ion-label>
+      </ion-item>
+    </ng-template>
+  </div>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-grid>
+      <ion-row>
+        <ion-col class="ion-text-center">
+          <ion-button fill="clear" routerLink="/home" routerLinkActive="active-tab" [routerLinkActiveOptions]="{ exact: true }">
+            <ion-icon name="home-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+        <ion-col class="ion-text-center">
+          <ion-button fill="clear" routerLink="/now-playing" routerLinkActive="active-tab">
+            <ion-icon name="musical-notes-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+        <ion-col class="ion-text-center">
+          <ion-button fill="clear" routerLink="/profile" routerLinkActive="active-tab">
+            <ion-icon name="person-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ion-toolbar>
+</ion-footer>

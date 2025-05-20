@@ -1,0 +1,65 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Profile</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-list *ngIf="playlist.length; else noSongs" lines="full">
+    <ion-list-header>Your Playlist</ion-list-header>
+
+    <ion-item *ngFor="let track of playlist" (click)="playTrack(track, playlist)">
+      <ion-thumbnail slot="start">
+        <img [src]="track.album_image || 'assets/img/local-music.png'" />
+      </ion-thumbnail>
+      <ion-label>
+        <h3>{{ track.name }}</h3>
+        <p>{{ track.artist_name }}</p>
+      </ion-label>
+      <ion-button
+        fill="clear"
+        color="medium"
+        slot="end"
+        (click)="confirmRemove(track, $event)">
+        <ion-icon name="close-outline" slot="icon-only" style="font-size: 18px;"></ion-icon>
+      </ion-button>
+    </ion-item>
+  </ion-list>
+
+  <ng-template #noSongs>
+    <div class="empty-message">
+      <ion-icon name="musical-notes-outline" size="large"></ion-icon>
+      <p>You haven’t added any songs yet.</p>
+    </div>
+  </ng-template>
+</ion-content>
+
+<!-- Mini Player -->
+<div class="mini-player-wrapper">
+  <app-mini-player></app-mini-player>
+</div>
+
+<!-- Footer Navigation Tabs -->
+<ion-footer>
+  <ion-toolbar>
+    <ion-grid>
+      <ion-row>
+        <ion-col class="ion-text-center">
+          <ion-button fill="clear" routerLink="/home" routerLinkActive="active-tab" [routerLinkActiveOptions]="{ exact: true }">
+            <ion-icon name="home-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+        <ion-col class="ion-text-center">
+          <ion-button fill="clear" routerLink="/now-playing" routerLinkActive="active-tab">
+            <ion-icon name="musical-notes-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+        <ion-col class="ion-text-center">
+          <ion-button fill="clear" routerLink="/profile" routerLinkActive="active-tab">
+            <ion-icon name="person-outline"></ion-icon>
+          </ion-button>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+  </ion-toolbar>
+</ion-footer>
