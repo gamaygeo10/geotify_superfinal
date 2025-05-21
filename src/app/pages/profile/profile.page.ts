@@ -110,4 +110,6 @@ export class ProfilePage implements OnInit, OnDestroy {
     }
     localStorage.setItem('userPlaylist', JSON.stringify(this.playlist));
   }
+
+  
 }

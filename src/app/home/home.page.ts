@@ -37,27 +37,34 @@ export class HomePage implements OnInit {
   ) {}
 
   async ngOnInit() {
-    this.route.queryParams.subscribe(params => {
-      this.addMode = params['addMode'] === 'true';
-    });
+  this.route.queryParams.subscribe(params => {
+    this.addMode = params['addMode'] === 'true';
 
-    this.loadRecentSongs();
+    if (params['playMode']) {
+      this.playMode = params['playMode']; 
+    } else {
+      this.playMode = 'streaming'; // fallback default
+    }
+  });
 
-    window.addEventListener('recentSongsUpdated', (event: any) => {
-      this.recentSongs = event.detail.slice(0, 3);
-    });
+  this.loadRecentSongs();
 
-    this.audioService.onTrackChange.subscribe(() => {
-      const currentTrack = this.audioService.getCurrentTrack();
-      if (currentTrack) {
-        this.saveRecentlyPlayed(currentTrack);
-      }
-    });
+  window.addEventListener('recentSongsUpdated', (event: any) => {
+    this.recentSongs = event.detail.slice(0, 3);
+  });
 
-    this.loadTopSongs();
-    this.loadGenreSongs();
-    await this.loadLocalTracks();
-  }
+  this.audioService.onTrackChange.subscribe(() => {
+    const currentTrack = this.audioService.getCurrentTrack();
+    if (currentTrack) {
+      this.saveRecentlyPlayed(currentTrack);
+    }
+  });
+
+  this.loadTopSongs();
+  this.loadGenreSongs();
+  await this.loadLocalTracks();
+}
+
 
   async loadTopSongs() {
     this.jamendo.getTopSongs().subscribe((res: any) => {
@@ -272,15 +279,28 @@ export class HomePage implements OnInit {
   }
 
   async deleteLocalTrack(track: any) {
-    this.localTracks = this.localTracks.filter(t => t.name !== track.name);
-    await this.localFilesService.removeFile(track.name);
-    localStorage.setItem('localTracks', JSON.stringify(this.localTracks));
+  this.localTracks = this.localTracks.filter(t => t.name !== track.name);
+  await this.localFilesService.removeFile(track.name);
+  localStorage.setItem('localTracks', JSON.stringify(this.localTracks));
 
-    const current = this.audioService.getCurrentTrack();
-    if (current && current.name === track.name) {
-      this.audioService.stop();
+  // Remove the deleted track from userPlaylist if present
+  let playlist = JSON.parse(localStorage.getItem('userPlaylist') || '[]');
+  playlist = playlist.filter((item: any) => {
+    if (item.id !== undefined && track.id !== undefined) {
+      return item.id !== track.id;
     }
+    // For local tracks identified by name
+    return item.name !== track.name;
+  });
+  localStorage.setItem('userPlaylist', JSON.stringify(playlist));
+  window.dispatchEvent(new CustomEvent('userPlaylistUpdated', { detail: playlist }));
+
+  const current = this.audioService.getCurrentTrack();
+  if (current && current.name === track.name) {
+    this.audioService.stop();
   }
+}
+
 
   loadGenreSongs() {
     this.genres.forEach(genre => {
