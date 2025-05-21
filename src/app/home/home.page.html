@@ -129,13 +129,11 @@
     <ion-grid>
       <ion-row>
         <ion-col class="ion-text-center">
-          <!-- Home button with streaming mode forced -->
-          <ion-button 
-            fill="clear" 
-            [routerLink]="['/home']" 
-            [queryParams]="{ playMode: 'streaming' }" 
-            routerLinkActive="active-tab" 
-            [routerLinkActiveOptions]="{ exact: true }">
+          <ion-button
+            fill="clear"
+            (click)="goHome()"
+            [class.active-tab]="isHomePage"
+          >
             <ion-icon name="home-outline"></ion-icon>
           </ion-button>
         </ion-col>
@@ -155,3 +153,6 @@
     </ion-grid>
   </ion-toolbar>
 </ion-footer>
+
+
+

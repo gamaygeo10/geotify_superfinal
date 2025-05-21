@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class JamendoService {
-  private clientId = 'dcb96b78'; // 👈 Replace with your Jamendo Client ID
+  private clientId = 'dcb96b78'; 
   private baseUrl = 'https://api.jamendo.com/v3.0/tracks';
 
   constructor(private http: HttpClient) {}
